@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniCalc: Advanced Mathematical Suite</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'neon-blue': '0 0 15px rgba(59, 130, 246, 0.5)',
+                        'neon-purple': '0 0 15px rgba(168, 85, 247, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Smooth transition for active modes */
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.8);
+        }
+
+        /* Interactive active glows */
+        .glow-active {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            border-color: rgba(59, 130, 246, 1);
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden flex flex-col transition-colors duration-300">
+
+    <!-- Top Global Navbar -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/40">
+                <i class="fa-solid fa-calculator text-lg text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">OMNICALC</h1>
+                <p class="text-xs text-slate-400 font-medium">Ultimate Math Engine & Graphics Tool</p>
+            </div>
+        </div>
+
+        <!-- Global Settings Controls -->
+        <div class="flex items-center space-x-4">
+            <!-- Sound Toggle Button -->
+            <button id="soundToggle" onclick="toggleSound()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-lg text-xs flex items-center space-x-1.5 transition-all" title="Toggle Haptic Sound Feedbacks">
+                <i class="fa-solid fa-volume-high text-blue-400" id="soundIcon"></i>
+                <span class="hidden md:inline font-semibold">Sound On</span>
+            </button>
+
+            <!-- Color Palette / Theme Switcher -->
+            <div class="relative group">
+                <button class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-lg text-xs flex items-center space-x-1.5 transition-all">
+                    <i class="fa-solid fa-palette text-purple-400"></i>
+                    <span class="hidden md:inline font-semibold">Theme</span>
+                </button>
+                <div class="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-xl hidden group-hover:block hover:block z-50">
+                    <div class="p-1">
+                        <button onclick="changeTheme('cyberpunk')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 rounded-lg flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                            <span>Cyberpunk Neon</span>
+                        </button>
+                        <button onclick="changeTheme('slate')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 rounded-lg flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                            <span>Professional Slate</span>
+                        </button>
+                        <button onclick="changeTheme('sunset')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 rounded-lg flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                            <span>Crimson Sunset</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <span class="text-xs font-mono px-2 py-1 bg-slate-800 text-slate-400 rounded-md border border-slate-700 hidden sm:inline">v2.5 (Stable)</span>
+        </div>
+    </header>
+
+    <!-- Main Workspace Frame -->
+    <div class="flex-1 flex overflow-hidden flex-col md:flex-row">
+        <!-- Sidebar Navigation -->
+        <nav class="bg-slate-900/60 md:w-64 border-r border-slate-800 p-4 shrink-0 flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto space-x-2 md:space-x-0 md:space-y-1.5 z-10 select-none">
+            <button onclick="switchMode('scientific')" id="nav-scientific" class="nav-btn w-full px-4 py-3 rounded-xl text-left text-sm font-medium flex items-center space-x-3 transition-all shrink-0 md:shrink">
+                <i class="fa-solid fa-square-root-variable text-blue-400 text-base"></i>
+                <span>Scientific Math</span>
+            </button>
+            <button onclick="switchMode('graphing')" id="nav-graphing" class="nav-btn w-full px-4 py-3 rounded-xl text-left text-sm font-medium flex items-center space-x-3 transition-all shrink-0 md:shrink">
+                <i class="fa-solid fa-chart-line text-emerald-400 text-base"></i>
+                <span>Interactive Graphing</span>
+            </button>
+            <button onclick="switchMode('programmer')" id="nav-programmer" class="nav-btn w-full px-4 py-3 rounded-xl text-left text-sm font-medium flex items-center space-x-3 transition-all shrink-0 md:shrink">
+                <i class="fa-solid fa-microchip text-amber-400 text-base"></i>
+                <span>Programmer Suite</span>
+            </button>
+            <button onclick="switchMode('matrix')" id="nav-matrix" class="nav-btn w-full px-4 py-3 rounded-xl text-left text-sm font-medium flex items-center space-x-3 transition-all shrink-0 md:shrink">
+                <i class="fa-solid fa-table-cells text-purple-400 text-base"></i>
+                <span>Matrix Studio</span>
+            </button>
+            <button onclick="switchMode('financial')" id="nav-financial" class="nav-btn w-full px-4 py-3 rounded-xl text-left text-sm font-medium flex items-center space-x-3 transition-all shrink-0 md:shrink">
+                <i class="fa-solid fa-chart-pie text-rose-400 text-base"></i>
+                <span>Financial Engine</span>
+            </button>
+            <button onclick="switchMode('converter')" id="nav-converter" class="nav-btn w-full px-4 py-3 rounded-xl text-left text-sm font-medium flex items-center space-x-3 transition-all shrink-0 md:shrink">
+                <i class="fa-solid fa-arrows-spin text-teal-400 text-base"></i>
+                <span>Unit Converter</span>
+            </button>
+        </nav>
+
+        <!-- Dynamic Calculator Workspace Viewports -->
+        <main class="flex-1 relative overflow-y-auto bg-slate-950 p-4 md:p-6">
+            
+            <!-- Global Custom Toast/Notification Alert Overlay -->
+            <div id="toastAlert" class="absolute top-4 right-4 z-50 bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 pointer-events-none opacity-0 transform translate-y-[-20px] transition-all duration-300">
+                <div id="toastIconContainer" class="w-8 h-8 rounded-lg flex items-center justify-center text-sm"></div>
+                <div>
+                    <h4 id="toastTitle" class="text-xs font-bold text-slate-100"></h4>
+                    <p id="toastMessage" class="text-[10px] text-slate-400"></p>
+                </div>
+            </div>
+
+            <!-- 1. Scientific Calculator View -->
+            <div id="view-scientific" class="calc-view hidden h-full grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+                <!-- Primary Entry Terminal and Keypad Panel -->
+                <div class="lg:col-span-2 bg-slate-900/40 rounded-2xl border border-slate-800 p-4 flex flex-col justify-between shadow-lg">
+                    <!-- Screen/Output Terminal -->
+                    <div class="bg-slate-950/80 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-end text-right min-h-[120px] shadow-inner mb-4">
+                        <div id="scientificHistoryText" class="text-xs text-slate-500 font-mono tracking-wide h-6 overflow-hidden"></div>
+                        <div id="scientificInput" class="text-xl md:text-3xl font-mono text-slate-200 tracking-wide overflow-x-auto whitespace-nowrap py-1"></div>
+                        <div id="scientificOutput" class="text-2xl md:text-4xl font-mono text-blue-400 font-semibold tracking-wide overflow-x-auto whitespace-nowrap mt-2">0</div>
+                    </div>
+
+                    <!-- Keyboard Grid Area -->
+                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 text-sm">
+                        <!-- Advanced/Scientific keys (Only visible on wide layout or standard scientific rows) -->
+                        <button onclick="pressSci('rad')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all">Rad/Deg</button>
+                        <button onclick="pressSci('sin')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all">sin</button>
+                        <button onclick="pressSci('cos')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all">cos</button>
+                        <button onclick="pressSci('tan')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all">tan</button>
+                        <button onclick="pressSci('log')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">log</button>
+                        <button onclick="pressSci('ln')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">ln</button>
+
+                        <button onclick="pressSci('pow')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all">xʸ</button>
+                        <button onclick="pressSci('sqrt')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all">√x</button>
+                        <button onclick="pressSci('pi')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all">π</button>
+                        <button onclick="pressSci('e')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all">e</button>
+                        <button onclick="pressSci('abs')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">|x|</button>
+                        <button onclick="pressSci('fact')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">x!</button>
+
+                        <button onclick="pressSci('(')" class="p-3 bg-slate-800/80 hover:bg-slate-700 font-semibold text-slate-300 rounded-lg"> ( </button>
+                        <button onclick="pressSci(')')" class="p-3 bg-slate-800/80 hover:bg-slate-700 font-semibold text-slate-300 rounded-lg"> ) </button>
+                        <button onclick="pressSci('CE')" class="p-3 bg-rose-900/30 hover:bg-rose-900/50 border border-rose-800/40 text-rose-300 font-semibold rounded-lg">CE</button>
+                        <button onclick="pressSci('C')" class="p-3 bg-rose-600 hover:bg-rose-500 font-bold text-white rounded-lg">AC</button>
+                        <button onclick="pressSci('mod')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">mod</button>
+                        <button onclick="pressSci('/')" class="p-3 bg-indigo-950 hover:bg-indigo-900 border border-indigo-800 text-indigo-300 font-bold rounded-lg text-lg">/</button>
+
+                        <button onclick="pressSci('7')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">7</button>
+                        <button onclick="pressSci('8')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">8</button>
+                        <button onclick="pressSci('9')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">9</button>
+                        <button onclick="pressSci('*')" class="p-3 bg-indigo-950 hover:bg-indigo-900 border border-indigo-800 text-indigo-300 font-bold rounded-lg text-lg">×</button>
+                        <button onclick="pressSci('inverse')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">1/x</button>
+                        <button onclick="pressSci('backspace')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block"><i class="fa-solid fa-delete-left"></i></button>
+
+                        <button onclick="pressSci('4')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">4</button>
+                        <button onclick="pressSci('5')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">5</button>
+                        <button onclick="pressSci('6')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">6</button>
+                        <button onclick="pressSci('-')" class="p-3 bg-indigo-950 hover:bg-indigo-900 border border-indigo-800 text-indigo-300 font-bold rounded-lg text-lg">-</button>
+                        <button onclick="pressSci('square')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">x²</button>
+                        <button onclick="pressSci('percent')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">%</button>
+
+                        <button onclick="pressSci('1')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">1</button>
+                        <button onclick="pressSci('2')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">2</button>
+                        <button onclick="pressSci('3')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">3</button>
+                        <button onclick="pressSci('+')" class="p-3 bg-indigo-950 hover:bg-indigo-900 border border-indigo-800 text-indigo-300 font-bold rounded-lg text-lg">+</button>
+                        <button onclick="pressSci('rand')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all hidden sm:block">RAND</button>
+                        <button onclick="pressSci('eval')" class="p-3 bg-blue-600 hover:bg-blue-500 font-bold text-white rounded-lg text-lg col-span-1 sm:row-span-2 flex items-center justify-center shadow-lg shadow-blue-500/20">=</button>
+
+                        <button onclick="pressSci('neg')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">±</button>
+                        <button onclick="pressSci('0')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">0</button>
+                        <button onclick="pressSci('.')" class="p-3 bg-slate-800 hover:bg-slate-700/80 font-semibold rounded-lg text-lg text-slate-100">.</button>
+                        <button onclick="pressSci('exp')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all sm:hidden">EXP</button>
+                        <button onclick="pressSci('backspace')" class="p-3 bg-slate-800/50 hover:bg-slate-700/60 font-medium text-slate-400 rounded-lg hover:text-white transition-all sm:hidden"><i class="fa-solid fa-delete-left"></i></button>
+                    </div>
+                </div>
+
+                <!-- Right-hand Interactive Scientific History and Memory Card -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-4 flex flex-col justify-between shadow-lg">
+                    <div>
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                            <span class="text-xs font-bold tracking-widest text-slate-400 uppercase">Calculation Log</span>
+                            <button onclick="clearScientificHistory()" class="text-[10px] text-rose-400 hover:text-rose-300 font-semibold uppercase flex items-center space-x-1">
+                                <i class="fa-regular fa-trash-can"></i>
+                                <span>Clear</span>
+                            </button>
+                        </div>
+                        <div id="sciHistoryContainer" class="space-y-3 mt-4 overflow-y-auto max-h-[220px] lg:max-h-[360px] pr-2">
+                            <!-- Populated Dynamically -->
+                            <div class="text-xs text-slate-500 italic text-center py-4">No recent operations.</div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Memory Registers UI -->
+                    <div class="border-t border-slate-800 pt-3 mt-4">
+                        <span class="text-xs font-bold tracking-widest text-slate-400 uppercase">Memory Storage</span>
+                        <div class="grid grid-cols-4 gap-2 mt-2">
+                            <button onclick="handleMemory('MC')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg">MC</button>
+                            <button onclick="handleMemory('MR')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg">MR</button>
+                            <button onclick="handleMemory('M+')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg">M+</button>
+                            <button onclick="handleMemory('M-')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 rounded-lg">M-</button>
+                        </div>
+                        <div class="text-[10px] font-mono mt-1.5 text-slate-500 flex justify-between">
+                            <span>Register:</span>
+                            <span id="memVal" class="text-blue-400 font-semibold">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Interactive Graphing Calculator View -->
+            <div id="view-graphing" class="calc-view hidden h-full flex flex-col lg:flex-row gap-6 fade-in">
+                <!-- Sidebar Controls & Functions Panel -->
+                <div class="lg:w-80 bg-slate-900/40 rounded-2xl border border-slate-800 p-4 flex flex-col justify-between shadow-lg shrink-0">
+                    <div>
+                        <div class="pb-3 border-b border-slate-800 mb-4">
+                            <h3 class="text-xs font-bold tracking-widest text-slate-400 uppercase">Plot Functions (Y=)</h3>
+                            <p class="text-[10px] text-slate-500">Supports variables like 'x' (e.g., sin(x) or x^2)</p>
+                        </div>
+                        
+                        <div class="space-y-4" id="graphInputList">
+                            <!-- Single input block template (recreated / modified) -->
+                            <div class="space-y-1.5" id="eq-block-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-400 flex items-center space-x-1.5">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                        <span>f₁(x) =</span>
+                                    </span>
+                                    <button class="text-slate-500 hover:text-slate-300" onclick="resetGraphInput(1)"><i class="fa-solid fa-arrows-rotate text-[10px]"></i></button>
+                                </div>
+                                <input type="text" id="eq-input-1" value="x^2 - 3" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 outline-none focus:border-blue-500 transition-colors" placeholder="Type function...">
+                            </div>
+
+                            <div class="space-y-1.5" id="eq-block-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-400 flex items-center space-x-1.5">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                        <span>f₂(x) =</span>
+                                    </span>
+                                    <button class="text-slate-500 hover:text-slate-300" onclick="resetGraphInput(2)"><i class="fa-solid fa-arrows-rotate text-[10px]"></i></button>
+                                </div>
+                                <input type="text" id="eq-input-2" value="2*sin(x)" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 outline-none focus:border-emerald-500 transition-colors" placeholder="Type function...">
+                            </div>
+                        </div>
+
+                        <!-- Render Actions -->
+                        <div class="mt-4">
+                            <button onclick="renderGraphPlots()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-xl shadow-lg transition-all flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span>Plot Mathematical Curves</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Graphing Calibration Panel -->
+                    <div class="border-t border-slate-800 pt-4 mt-4 space-y-3">
+                        <span class="text-xs font-bold tracking-widest text-slate-400 uppercase block">Viewport Calibration</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="adjustGraphView('zoomIn')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg flex items-center justify-center space-x-1.5 font-medium">
+                                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                <span>Zoom In</span>
+                            </button>
+                            <button onclick="adjustGraphView('zoomOut')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg flex items-center justify-center space-x-1.5 font-medium">
+                                <i class="fa-solid fa-magnifying-glass-minus"></i>
+                                <span>Zoom Out</span>
+                            </button>
+                        </div>
+                        <button onclick="adjustGraphView('center')" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg flex items-center justify-center space-x-1.5 font-medium">
+                            <i class="fa-solid fa-expand"></i>
+                            <span>Re-center Grid View</span>
+                        </button>
+                        <p class="text-[9px] text-slate-500 text-center italic">Drag on graph grid to pan. Scroll mouse wheel to zoom dynamically.</p>
+                    </div>
+                </div>
+
+                <!-- Canvas Grid Interactive Panel -->
+                <div class="flex-1 bg-slate-900/40 rounded-2xl border border-slate-800 p-4 flex flex-col justify-between shadow-lg relative min-h-[320px]">
+                    <div class="flex-1 relative overflow-hidden rounded-xl border border-slate-950">
+                        <canvas id="graphCanvas" class="absolute inset-0 w-full h-full bg-slate-950 cursor-grab active:cursor-grabbing"></canvas>
+                        
+                        <!-- Floating HUD readout of pointer position -->
+                        <div class="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur border border-slate-800 rounded-lg px-2.5 py-1.5 font-mono text-[10px] text-slate-300 z-10 flex flex-col space-y-0.5">
+                            <div><span class="text-slate-500">Pointer:</span> <span id="hud-coord-x">0.00</span>, <span id="hud-coord-y">0.00</span></div>
+                            <div><span class="text-slate-500">Domain:</span> [-10, 10]</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Programmer Mode Suite View -->
+            <div id="view-programmer" class="calc-view hidden h-full grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+                <!-- Binary Representation & Register State Panel -->
+                <div class="lg:col-span-2 bg-slate-900/40 rounded-2xl border border-slate-800 p-4 flex flex-col justify-between shadow-lg">
+                    <!-- Base Value Monitors -->
+                    <div class="space-y-2 mb-4 bg-slate-950/80 border border-slate-800/80 rounded-xl p-4">
+                        <div id="progActiveLabel" class="text-right text-[10px] font-bold text-amber-500 tracking-wider font-mono">ACTIVE BASE: DEC</div>
+                        
+                        <!-- HEX Monitor -->
+                        <div onclick="setProgrammerActiveBase('HEX')" id="prog-hex-row" class="flex items-center justify-between border-b border-slate-900 py-1.5 cursor-pointer hover:bg-slate-900/40 rounded px-1 group transition-colors">
+                            <span class="text-xs font-mono font-bold text-slate-500 group-hover:text-amber-500">HEX</span>
+                            <span id="progHexVal" class="text-sm font-mono tracking-wide text-slate-200">0</span>
+                        </div>
+                        <!-- DEC Monitor -->
+                        <div onclick="setProgrammerActiveBase('DEC')" id="prog-dec-row" class="flex items-center justify-between border-b border-slate-900 py-1.5 cursor-pointer hover:bg-slate-900/40 rounded px-1 group transition-colors glow-active border border-amber-600/30">
+                            <span class="text-xs font-mono font-bold text-slate-500 group-hover:text-amber-500">DEC</span>
+                            <span id="progDecVal" class="text-sm font-mono tracking-wide text-amber-400 font-bold">0</span>
+                        </div>
+                        <!-- OCT Monitor -->
+                        <div onclick="setProgrammerActiveBase('OCT')" id="prog-oct-row" class="flex items-center justify-between border-b border-slate-900 py-1.5 cursor-pointer hover:bg-slate-900/40 rounded px-1 group transition-colors">
+                            <span class="text-xs font-mono font-bold text-slate-500 group-hover:text-amber-500">OCT</span>
+                            <span id="progOctVal" class="text-sm font-mono tracking-wide text-slate-200">0</span>
+                        </div>
+                        <!-- BIN Monitor -->
+                        <div onclick="setProgrammerActiveBase('BIN')" id="prog-bin-row" class="flex items-center justify-between py-1.5 cursor-pointer hover:bg-slate-900/40 rounded px-1 group transition-colors">
+                            <span class="text-xs font-mono font-bold text-slate-500 group-hover:text-amber-500">BIN</span>
+                            <span id="progBinVal" class="text-sm font-mono tracking-wide text-slate-200 break-all">0000 0000 0000 0000</span>
+                        </div>
+                    </div>
+
+                    <!-- Programmer-specific Keypad Grid -->
+                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 text-sm">
+                        <!-- Bitwise Operations Row -->
+                        <button onclick="pressProgOp('AND')" class="p-2.5 bg-slate-800/60 hover:bg-slate-700/60 font-mono text-slate-400 hover:text-white rounded-lg text-xs">AND</button>
+                        <button onclick="pressProgOp('OR')" class="p-2.5 bg-slate-800/60 hover:bg-slate-700/60 font-mono text-slate-400 hover:text-white rounded-lg text-xs">OR</button>
+                        <button onclick="pressProgOp('XOR')" class="p-2.5 bg-slate-800/60 hover:bg-slate-700/60 font-mono text-slate-400 hover:text-white rounded-lg text-xs">XOR</button>
+                        <button onclick="pressProgOp('NOT')" class="p-2.5 bg-slate-800/60 hover:bg-slate-700/60 font-mono text-slate-400 hover:text-white rounded-lg text-xs">NOT</button>
+                        <button onclick="pressProgOp('LSH')" class="p-2.5 bg-slate-800/60 hover:bg-slate-700/60 font-mono text-slate-400 hover:text-white rounded-lg text-xs hidden sm:block">Lsh</button>
+                        <button onclick="pressProgOp('RSH')" class="p-2.5 bg-slate-800/60 hover:bg-slate-700/60 font-mono text-slate-400 hover:text-white rounded-lg text-xs hidden sm:block">Rsh</button>
+
+                        <!-- HEX Specific buttons (A-F) -->
+                        <button onclick="pressProgKey('A')" id="btn-hex-A" class="p-3 bg-slate-800/30 text-slate-600 cursor-not-allowed font-semibold rounded-lg text-lg">A</button>
+                        <button onclick="pressProgKey('B')" id="btn-hex-B" class="p-3 bg-slate-800/30 text-slate-600 cursor-not-allowed font-semibold rounded-lg text-lg">B</button>
+                        <button onclick="pressProgKey('C')" id="btn-hex-C" class="p-3 bg-slate-800/30 text-slate-600 cursor-not-allowed font-semibold rounded-lg text-lg">C</button>
+                        <button onclick="pressProgKey('C_AC')" class="p-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-base">AC</button>
+                        <button onclick="pressProgKey('backspace')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-base hidden sm:block"><i class="fa-solid fa-delete-left"></i></button>
+                        <button onclick="pressProgOp('/')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-lg hidden sm:block">/</button>
+
+                        <button onclick="pressProgKey('D')" id="btn-hex-D" class="p-3 bg-slate-800/30 text-slate-600 cursor-not-allowed font-semibold rounded-lg text-lg">D</button>
+                        <button onclick="pressProgKey('E')" id="btn-hex-E" class="p-3 bg-slate-800/30 text-slate-600 cursor-not-allowed font-semibold rounded-lg text-lg">E</button>
+                        <button onclick="pressProgKey('F')" id="btn-hex-F" class="p-3 bg-slate-800/30 text-slate-600 cursor-not-allowed font-semibold rounded-lg text-lg">F</button>
+                        <button onclick="pressProgOp('*')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-lg">*</button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg hidden sm:block font-mono" disabled>RoL</button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg hidden sm:block font-mono" disabled>RoR</button>
+
+                        <!-- Numbers Row standard keys -->
+                        <button onclick="pressProgKey('7')" id="btn-num-7" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">7</button>
+                        <button onclick="pressProgKey('8')" id="btn-num-8" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">8</button>
+                        <button onclick="pressProgKey('9')" id="btn-num-9" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">9</button>
+                        <button onclick="pressProgOp('-')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-lg">-</button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg hidden sm:block" disabled></button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg hidden sm:block" disabled></button>
+
+                        <button onclick="pressProgKey('4')" id="btn-num-4" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">4</button>
+                        <button onclick="pressProgKey('5')" id="btn-num-5" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">5</button>
+                        <button onclick="pressProgKey('6')" id="btn-num-6" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">6</button>
+                        <button onclick="pressProgOp('+')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-lg">+</button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg hidden sm:block" disabled></button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg hidden sm:block" disabled></button>
+
+                        <button onclick="pressProgKey('1')" id="btn-num-1" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">1</button>
+                        <button onclick="pressProgKey('2')" id="btn-num-2" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">2</button>
+                        <button onclick="pressProgKey('3')" id="btn-num-3" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">3</button>
+                        <button onclick="pressProgEval()" class="p-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-lg col-span-1 sm:row-span-2 flex items-center justify-center shadow-lg shadow-amber-500/20">=</button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg hidden sm:block" disabled></button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg hidden sm:block" disabled></button>
+
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg cursor-not-allowed" disabled>±</button>
+                        <button onclick="pressProgKey('0')" id="btn-num-0" class="p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100">0</button>
+                        <button class="p-3 bg-slate-800/30 text-slate-500 rounded-lg text-lg cursor-not-allowed" disabled>.</button>
+                        <button onclick="pressProgKey('backspace')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-lg sm:hidden"><i class="fa-solid fa-delete-left"></i></button>
+                    </div>
+                </div>
+
+                <!-- 64-bit Binary Grid interactive map panel -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-4 flex flex-col justify-between shadow-lg">
+                    <div>
+                        <div class="pb-3 border-b border-slate-800 mb-4 flex items-center justify-between">
+                            <span class="text-xs font-bold tracking-widest text-slate-400 uppercase">Bit Field Visualizer</span>
+                            <span class="text-[10px] text-slate-500 font-mono">16-bit Workspace</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mb-4">Click individual bit boxes below to directly flip their values (0 ⇄ 1) and recalculate standard bases.</p>
+                        
+                        <!-- Interactive grid of bits (0 to 15) -->
+                        <div class="grid grid-cols-8 gap-1.5 font-mono text-center">
+                            <!-- Populated Dynamically with 16 responsive bits -->
+                            <div class="space-y-1">
+                                <div class="text-[9px] text-slate-500">15</div>
+                                <div onclick="toggleBit(15)" id="bit-15" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-[9px] text-slate-500">14</div>
+                                <div onclick="toggleBit(14)" id="bit-14" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-[9px] text-slate-500">13</div>
+                                <div onclick="toggleBit(13)" id="bit-13" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-[9px] text-slate-500">12</div>
+                                <div onclick="toggleBit(12)" id="bit-12" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-[9px] text-slate-500">11</div>
+                                <div onclick="toggleBit(11)" id="bit-11" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-[9px] text-slate-500">10</div>
+                                <div onclick="toggleBit(10)" id="bit-10" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-[9px] text-slate-500">9</div>
+                                <div onclick="toggleBit(9)" id="bit-9" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-[9px] text-slate-500">8</div>
+                                <div onclick="toggleBit(8)" id="bit-8" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            
+                            <!-- Lower Byte -->
+                            <div class="space-y-1 mt-2">
+                                <div class="text-[9px] text-slate-500">7</div>
+                                <div onclick="toggleBit(7)" id="bit-7" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1 mt-2">
+                                <div class="text-[9px] text-slate-500">6</div>
+                                <div onclick="toggleBit(6)" id="bit-6" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1 mt-2">
+                                <div class="text-[9px] text-slate-500">5</div>
+                                <div onclick="toggleBit(5)" id="bit-5" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1 mt-2">
+                                <div class="text-[9px] text-slate-500">4</div>
+                                <div onclick="toggleBit(4)" id="bit-4" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1 mt-2">
+                                <div class="text-[9px] text-slate-500">3</div>
+                                <div onclick="toggleBit(3)" id="bit-3" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1 mt-2">
+                                <div class="text-[9px] text-slate-500">2</div>
+                                <div onclick="toggleBit(2)" id="bit-2" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1 mt-2">
+                                <div class="text-[9px] text-slate-500">1</div>
+                                <div onclick="toggleBit(1)" id="bit-1" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                            <div class="space-y-1 mt-2">
+                                <div class="text-[9px] text-slate-500">0</div>
+                                <div onclick="toggleBit(0)" id="bit-0" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-400">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-800 pt-4 mt-4">
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[10px] text-slate-400 font-mono space-y-1">
+                            <div><span class="text-amber-500">Signed 16-bit Range:</span> [-32,768, 32,767]</div>
+                            <div><span class="text-amber-500">Unsigned Range:</span> [0, 65,535]</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Matrix Studio View -->
+            <div id="view-matrix" class="calc-view hidden h-full flex flex-col xl:flex-row gap-6 fade-in">
+                <!-- Inputs & Dimension Configuration -->
+                <div class="xl:w-1/2 bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between shadow-lg">
+                    <div>
+                        <!-- Heading Dimension Control -->
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-6">
+                            <div>
+                                <h3 class="text-xs font-bold tracking-widest text-slate-400 uppercase">Matrix Dimensions</h3>
+                                <p class="text-[10px] text-slate-500">Setup row and column settings</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-xs text-slate-400">Size:</label>
+                                <select id="matrixSizeSelect" onchange="initializeMatrixWorkspace()" class="bg-slate-950 text-xs text-slate-200 border border-slate-800 rounded-lg px-2.5 py-1 outline-none">
+                                    <option value="2">2 x 2</option>
+                                    <option value="3" selected>3 x 3</option>
+                                    <option value="4">4 x 4</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Active Matrix Dual Grid Layout -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Matrix A Workspace -->
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold text-slate-400 tracking-wider">Matrix A</span>
+                                    <button onclick="clearMatrix('A')" class="text-[10px] text-rose-400 hover:text-rose-300">Clear</button>
+                                </div>
+                                <div id="matrixGridA" class="grid gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800"></div>
+                            </div>
+
+                            <!-- Matrix B Workspace -->
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold text-slate-400 tracking-wider">Matrix B</span>
+                                    <button onclick="clearMatrix('B')" class="text-[10px] text-rose-400 hover:text-rose-300">Clear</button>
+                                </div>
+                                <div id="matrixGridB" class="grid gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Operator Trigger Toolbar -->
+                    <div class="border-t border-slate-800 pt-4 mt-6">
+                        <span class="text-xs font-bold tracking-widest text-slate-400 uppercase block mb-3">Matrix Arithmetic Operators</span>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button onclick="computeMatrixOp('add')" class="py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs rounded-xl transition-all">A + B</button>
+                            <button onclick="computeMatrixOp('sub')" class="py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs rounded-xl transition-all">A - B</button>
+                            <button onclick="computeMatrixOp('mult')" class="py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs rounded-xl transition-all">A × B</button>
+                            <button onclick="computeMatrixOp('detA')" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl transition-all">Det(A)</button>
+                            <button onclick="computeMatrixOp('invA')" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl transition-all">Inv(A)</button>
+                            <button onclick="computeMatrixOp('transA')" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl transition-all">Trans(A)</button>
+                            <button onclick="swapMatrices()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl transition-all col-span-2"><i class="fa-solid fa-right-left text-[10px] mr-1.5"></i>Swap (A ⇄ B)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Matrix Computational Output Workspace -->
+                <div class="flex-1 bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between shadow-lg">
+                    <div>
+                        <div class="pb-3 border-b border-slate-800 mb-4 flex items-center justify-between">
+                            <span class="text-xs font-bold tracking-widest text-slate-400 uppercase">Studio Calculations Terminal</span>
+                            <span id="matrixOpBadge" class="text-[10px] px-2 py-0.5 bg-indigo-900/40 text-indigo-300 border border-indigo-800 rounded font-semibold">Idle</span>
+                        </div>
+                        
+                        <!-- Rich output workspace console -->
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 min-h-[160px] flex items-center justify-center">
+                            <div id="matrixOutputPlaceholder" class="text-xs text-slate-500 text-center italic">Trigger an arithmetic command on the left to review calculation arrays and determinants.</div>
+                            
+                            <div id="matrixResultLayout" class="hidden w-full space-y-4">
+                                <!-- Scalar Text (Det) -->
+                                <div id="matrixScalarResult" class="text-sm font-semibold text-emerald-400 font-mono"></div>
+                                <!-- Mat Output -->
+                                <div class="max-w-[280px] mx-auto p-3 border border-slate-800 bg-slate-900/30 rounded-lg">
+                                    <div id="matrixOutputGrid" class="grid gap-2 font-mono text-center"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-slate-800 pt-4 mt-6">
+                        <p class="text-[10px] text-slate-500 italic">Computations utilize numeric fraction algorithms to prevent roundoff errors during matrix inversion operations.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Financial Modeler View -->
+            <div id="view-financial" class="calc-view hidden h-full flex flex-col lg:flex-row gap-6 fade-in">
+                <!-- Loan Config Inputs Panel -->
+                <div class="lg:w-96 bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between shadow-lg shrink-0">
+                    <div>
+                        <div class="pb-3 border-b border-slate-800 mb-4 flex justify-between items-center">
+                            <h3 class="text-xs font-bold tracking-widest text-slate-400 uppercase">Loan Parameters</h3>
+                            <select id="finType" onchange="adjustFinanceInputs()" class="bg-slate-950 text-[10px] text-rose-300 font-bold border border-slate-800 rounded px-2 py-0.5 outline-none">
+                                <option value="loan">Mortgage/Loan</option>
+                                <option value="compound">Compound Savings</option>
+                            </select>
+                        </div>
+
+                        <!-- Dynamic Form Parameters -->
+                        <div class="space-y-4" id="finForm">
+                            <!-- Parameter A -->
+                            <div class="space-y-1">
+                                <label id="labelFinA" class="text-xs text-slate-400 font-semibold">Principal / Amount ($)</label>
+                                <input type="number" id="finInputA" value="250000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-200 outline-none focus:border-rose-500 transition-colors">
+                            </div>
+
+                            <!-- Parameter B -->
+                            <div class="space-y-1">
+                                <label id="labelFinB" class="text-xs text-slate-400 font-semibold">Annual Interest Rate (%)</label>
+                                <input type="number" id="finInputB" value="5.5" step="0.1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-200 outline-none focus:border-rose-500 transition-colors">
+                            </div>
+
+                            <!-- Parameter C -->
+                            <div class="space-y-1">
+                                <label id="labelFinC" class="text-xs text-slate-400 font-semibold">Term Horizon (Years)</label>
+                                <input type="number" id="finInputC" value="30" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-200 outline-none focus:border-rose-500 transition-colors">
+                            </div>
+                        </div>
+
+                        <div class="mt-5">
+                            <button onclick="calculateFinancials()" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white rounded-xl shadow-lg transition-all flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-calculator"></i>
+                                <span>Analyze Calculations</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-800 pt-4 mt-6">
+                        <p class="text-[9px] text-slate-500 text-center italic">Calculations strictly match standard amortized schedules and monthly frequency compounds.</p>
+                    </div>
+                </div>
+
+                <!-- Comprehensive Payment Breakdown charts & displays -->
+                <div class="flex-1 bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between shadow-lg">
+                    <div>
+                        <div class="pb-3 border-b border-slate-800 mb-4 flex items-center justify-between">
+                            <span class="text-xs font-bold tracking-widest text-slate-400 uppercase">Analysis breakdown</span>
+                            <span class="text-[10px] text-rose-400 font-mono font-bold" id="finResultLabel">Amortization Details</span>
+                        </div>
+
+                        <!-- KPI Grid Summary Cards -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-slate-950 p-4 border border-slate-850 rounded-xl shadow-inner">
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Monthly Cost</span>
+                                <div id="finKpiMonthly" class="text-lg md:text-xl font-bold font-mono text-rose-400 mt-1">$1,419.47</div>
+                            </div>
+                            <div class="bg-slate-950 p-4 border border-slate-850 rounded-xl shadow-inner">
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Principal Sum</span>
+                                <div id="finKpiPrincipal" class="text-lg md:text-xl font-bold font-mono text-slate-300 mt-1">$250,000.00</div>
+                            </div>
+                            <div class="bg-slate-950 p-4 border border-slate-850 rounded-xl shadow-inner">
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Aggregate Interest</span>
+                                <div id="finKpiInterest" class="text-lg md:text-xl font-bold font-mono text-amber-500 mt-1">$261,010.59</div>
+                            </div>
+                        </div>
+
+                        <!-- Graphical Percentage Distribution Bar -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+                                <span class="flex items-center space-x-1.5"><span class="w-2.5 h-2.5 bg-slate-500 rounded-full"></span> <span>Principal %</span></span>
+                                <span class="flex items-center space-x-1.5"><span class="w-2.5 h-2.5 bg-rose-500 rounded-full"></span> <span>Interest %</span></span>
+                            </div>
+                            <div class="h-4 bg-slate-950 border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                                <div id="finBarPrincipal" class="bg-slate-500 h-full transition-all duration-500" style="width: 48.9%;"></div>
+                                <div id="finBarInterest" class="bg-rose-500 h-full transition-all duration-500" style="width: 51.1%;"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                                <span id="finPctPrincipal">48.9%</span>
+                                <span id="finPctInterest">51.1%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 mt-6 flex justify-between items-center text-xs font-mono">
+                        <span class="text-slate-500">Total Payments Value:</span>
+                        <span id="finKpiAggregate" class="text-emerald-400 font-bold">$511,010.59</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Universal Unit Converter View -->
+            <div id="view-converter" class="calc-view hidden h-full grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+                <!-- Dual Field Inputs Interface Card -->
+                <div class="lg:col-span-2 bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between shadow-lg">
+                    <div>
+                        <!-- Dropdown select configuration -->
+                        <div class="pb-3 border-b border-slate-800 mb-6 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-xs font-bold tracking-widest text-slate-400 uppercase">Unit Conversions</h3>
+                                <p class="text-[10px] text-slate-500 font-medium">Instantly translate physical measurements</p>
+                            </div>
+                            <select id="convType" onchange="initializeConverterUnits()" class="bg-slate-950 text-xs text-teal-300 font-semibold border border-slate-800 rounded-lg px-2.5 py-1.5 outline-none">
+                                <option value="length">Length / Distance</option>
+                                <option value="mass">Mass / Weight</option>
+                                <option value="area">Area Measurements</option>
+                                <option value="volume">Volume Capacities</option>
+                                <option value="speed">Velocity / Speed</option>
+                                <option value="temp">Temperature</option>
+                            </select>
+                        </div>
+
+                        <!-- Source Block Input -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Field Source -->
+                            <div class="space-y-2">
+                                <label class="text-xs text-slate-400 font-semibold">From Dimension:</label>
+                                <select id="convUnitFrom" onchange="performConversion()" class="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono outline-none"></select>
+                                <input type="number" id="convInputFrom" value="1" oninput="performConversion()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors">
+                            </div>
+
+                            <!-- Target Block Input -->
+                            <div class="space-y-2">
+                                <label class="text-xs text-slate-400 font-semibold">To Dimension:</label>
+                                <select id="convUnitTo" onchange="performConversion()" class="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono outline-none"></select>
+                                <input type="number" id="convInputTo" readonly class="w-full bg-slate-950 border border-slate-800/60 rounded-xl px-3.5 py-2.5 text-sm font-mono text-teal-400 outline-none select-all" placeholder="Computed result...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-800 pt-4 mt-6 flex justify-between items-center">
+                        <p class="text-[10px] text-slate-500 italic">Conversations occur in real-time as values modify.</p>
+                        <button onclick="swapConversionUnits()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg flex items-center space-x-1"><i class="fa-solid fa-arrows-rotate text-[9px]"></i> <span>Swap Dimensions</span></button>
+                    </div>
+                </div>
+
+                <!-- Fast Quick-Reference Table Card -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between shadow-lg">
+                    <div>
+                        <div class="pb-3 border-b border-slate-800 mb-4 flex items-center justify-between">
+                            <span class="text-xs font-bold tracking-widest text-slate-400 uppercase">Conversion Reference</span>
+                            <span class="text-[9px] text-slate-500">Core Constants</span>
+                        </div>
+                        <div class="space-y-3 mt-4" id="conversionReferenceMap">
+                            <!-- Populated dynamically to match active context layout -->
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-800 pt-4 mt-4">
+                        <div class="p-3 bg-slate-950 rounded-lg border border-slate-850 text-[10px] text-slate-500 leading-normal">
+                            Multipliers derived from IEEE 754 precision math guidelines. Conversion values scale according to absolute SI definitions.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Sound, Theme, UI and Multi-mode Engine Scripts -->
+    <script>
+        // SOUND GENERATOR FEEDBACK SUITE (Web Audio API)
+        let soundEnabled = true;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSynthBeep(frequency, type, duration) {
+            if (!soundEnabled) return;
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = type || 'sine';
+                osc.frequency.setValueAtTime(frequency || 440, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {
+                console.warn("Sound blocked/unsupported on device:", e);
+            }
+        }
+
+        function clickSound() { playSynthBeep(880, 'sine', 0.05); }
+        function opSound() { playSynthBeep(1200, 'sine', 0.08); }
+        function successSound() { 
+            playSynthBeep(600, 'triangle', 0.1);
+            setTimeout(() => playSynthBeep(1200, 'triangle', 0.15), 80);
+        }
+        function errorSound() { 
+            playSynthBeep(180, 'sawtooth', 0.3);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            const text = document.querySelector('#soundToggle span');
+            if (soundEnabled) {
+                icon.className = "fa-solid fa-volume-high text-blue-400";
+                text.textContent = "Sound On";
+                clickSound();
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-slate-500";
+                text.textContent = "Sound Off";
+            }
+        }
+
+        // CUSTOM NOTIFICATIONS ENGINE (To replace Alerts)
+        function triggerToast(title, message, type) {
+            const toast = document.getElementById('toastAlert');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMsg = document.getElementById('toastMessage');
+            const iconBox = document.getElementById('toastIconContainer');
+
+            toastTitle.textContent = title;
+            toastMsg.textContent = message;
+
+            if (type === 'success') {
+                iconBox.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+                iconBox.className = "w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-emerald-950 border border-emerald-800";
+                successSound();
+            } else if (type === 'error') {
+                iconBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-400"></i>';
+                iconBox.className = "w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-rose-950 border border-rose-800";
+                errorSound();
+            } else {
+                iconBox.innerHTML = '<i class="fa-solid fa-bell text-blue-400"></i>';
+                iconBox.className = "w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-blue-950 border border-blue-800";
+                clickSound();
+            }
+
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-20px)';
+            }, 3000);
+        }
+
+        // THEME SELECTION & STYLING ENGINE
+        function changeTheme(theme) {
+            clickSound();
+            const root = document.documentElement;
+            // Remove previous classes
+            root.className = "h-full";
+            
+            if (theme === 'cyberpunk') {
+                root.classList.add('dark');
+                document.body.className = "h-full bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden flex flex-col transition-colors duration-300";
+                triggerToast("Theme Updated", "Cyberpunk Neon Active", "info");
+            } else if (theme === 'slate') {
+                root.classList.add('dark');
+                document.body.className = "h-full bg-zinc-900 text-zinc-100 font-sans antialiased overflow-hidden flex flex-col transition-colors duration-300";
+                triggerToast("Theme Updated", "Slate Professional Configured", "info");
+            } else if (theme === 'sunset') {
+                document.body.className = "h-full bg-stone-950 text-stone-100 font-sans antialiased overflow-hidden flex flex-col transition-colors duration-300";
+                triggerToast("Theme Updated", "Crimson Sunset Configured", "info");
+            }
+        }
+
+        // MAIN WORKSPACE NAVIGATION & TAB SYSTEM
+        let currentMode = 'scientific';
+        function switchMode(mode) {
+            clickSound();
+            // Hide all workspaces
+            document.querySelectorAll('.calc-view').forEach(view => view.classList.add('hidden'));
+            // Remove active style from side navigation buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn w-full px-4 py-3 rounded-xl text-left text-sm font-medium flex items-center space-x-3 transition-all shrink-0 md:shrink text-slate-400 hover:text-slate-100 hover:bg-slate-800/40";
+            });
+
+            // Show current workspace
+            document.getElementById(`view-${mode}`).classList.remove('hidden');
+            
+            // Set active navigation design parameters
+            const activeBtn = document.getElementById(`nav-${mode}`);
+            let activeClass = "nav-btn w-full px-4 py-3 rounded-xl text-left text-sm font-bold flex items-center space-x-3 transition-all shrink-0 md:shrink ";
+            
+            if (mode === 'scientific') activeClass += "bg-blue-600/10 text-blue-400 border border-blue-500/20 shadow-neon-blue";
+            if (mode === 'graphing') activeClass += "bg-emerald-600/10 text-emerald-400 border border-emerald-500/20";
+            if (mode === 'programmer') activeClass += "bg-amber-600/10 text-amber-400 border border-amber-500/20";
+            if (mode === 'matrix') activeClass += "bg-purple-600/10 text-purple-400 border border-purple-500/20";
+            if (mode === 'financial') activeClass += "bg-rose-600/10 text-rose-400 border border-rose-500/20";
+            if (mode === 'converter') activeClass += "bg-teal-600/10 text-teal-400 border border-teal-500/20";
+            
+            activeBtn.className = activeClass;
+            currentMode = mode;
+
+            // Mode initializers
+            if (mode === 'graphing') {
+                setTimeout(initGraphCanvas, 100);
+            } else if (mode === 'matrix') {
+                initializeMatrixWorkspace();
+            } else if (mode === 'converter') {
+                initializeConverterUnits();
+            } else if (mode === 'programmer') {
+                setProgrammerActiveBase('DEC');
+            } else if (mode === 'financial') {
+                calculateFinancials();
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // 1. SCIENTIFIC MODE ENGINE
+        // -----------------------------------------------------------------
+        let sciExpression = "";
+        let sciMemoryValue = 0;
+        let isDegMode = false;
+
+        function pressSci(key) {
+            clickSound();
+            const inputEl = document.getElementById('scientificInput');
+            const outputEl = document.getElementById('scientificOutput');
+
+            if (key === 'C') {
+                sciExpression = "";
+                outputEl.textContent = "0";
+                inputEl.textContent = "";
+            } else if (key === 'CE') {
+                sciExpression = "";
+                inputEl.textContent = "";
+            } else if (key === 'backspace') {
+                sciExpression = sciExpression.slice(0, -1);
+                inputEl.textContent = sciExpression;
+            } else if (key === 'rad') {
+                isDegMode = !isDegMode;
+                triggerToast("Trig Settings Changed", isDegMode ? "Degree calculations active" : "Radian calculations active", "info");
+            } else if (key === 'eval') {
+                try {
+                    let formattedExpr = sciExpression
+                        .replace(/π/g, 'pi')
+                        .replace(/mod/g, '%');
+                        
+                    // Adjust trigonometry functions to evaluate degrees if mode is on
+                    if (isDegMode) {
+                        formattedExpr = formattedExpr
+                            .replace(/sin\((.*?)\)/g, 'sin(($1) * deg)')
+                            .replace(/cos\((.*?)\)/g, 'cos(($1) * deg)')
+                            .replace(/tan\((.*?)\)/g, 'tan(($1) * deg)');
+                    }
+
+                    const result = math.evaluate(formattedExpr);
+                    if (result === undefined || isNaN(result)) throw new Error("Math Exception");
+                    
+                    outputEl.textContent = result;
+                    appendScientificHistory(sciExpression, result);
+                    opSound();
+                } catch (e) {
+                    outputEl.textContent = "Error";
+                    triggerToast("Computation Error", "Your mathematical syntax could not be resolved.", "error");
+                }
+            } else {
+                // Formatting key inputs for parsing library
+                let addTerm = key;
+                if (key === 'sin' || key === 'cos' || key === 'tan' || key === 'log' || key === 'ln' || key === 'abs') {
+                    addTerm = key + "(";
+                } else if (key === 'pow') {
+                    addTerm = "^";
+                } else if (key === 'sqrt') {
+                    addTerm = "sqrt(";
+                } else if (key === 'pi') {
+                    addTerm = "π";
+                } else if (key === 'fact') {
+                    addTerm = "!";
+                } else if (key === 'square') {
+                    addTerm = "^2";
+                } else if (key === 'inverse') {
+                    addTerm = "^-1";
+                } else if (key === 'rand') {
+                    addTerm = "random()";
+                } else if (key === 'neg') {
+                    if (sciExpression && !isNaN(sciExpression.slice(-1))) {
+                        sciExpression = "-(" + sciExpression + ")";
+                        addTerm = "";
+                    } else {
+                        addTerm = "-";
+                    }
+                }
+                
+                sciExpression += addTerm;
+                inputEl.textContent = sciExpression;
+            }
+        }
+
+        function appendScientificHistory(expr, result) {
+            const container = document.getElementById('sciHistoryContainer');
+            // Remove blank state if present
+            if (container.innerHTML.includes('No recent operations.')) {
+                container.innerHTML = "";
+            }
+
+            const historyItem = document.createElement('div');
+            historyItem.className = "bg-slate-950/70 p-2.5 rounded-lg border border-slate-850 hover:border-slate-800 transition-all cursor-pointer font-mono text-right";
+            historyItem.innerHTML = `
+                <div class="text-[10px] text-slate-500 overflow-x-auto whitespace-nowrap">${expr}</div>
+                <div class="text-xs text-blue-400 font-semibold mt-0.5">${result}</div>
+            `;
+            
+            historyItem.onclick = () => {
+                clickSound();
+                sciExpression = String(result);
+                document.getElementById('scientificInput').textContent = sciExpression;
+                document.getElementById('scientificOutput').textContent = result;
+            };
+
+            container.prepend(historyItem);
+        }
+
+        function clearScientificHistory() {
+            clickSound();
+            document.getElementById('sciHistoryContainer').innerHTML = `<div class="text-xs text-slate-500 italic text-center py-4">No recent operations.</div>`;
+        }
+
+        function handleMemory(op) {
+            clickSound();
+            const outputVal = parseFloat(document.getElementById('scientificOutput').textContent) || 0;
+            const regDisplay = document.getElementById('memVal');
+
+            if (op === 'MC') {
+                sciMemoryValue = 0;
+                triggerToast("Memory Action", "Memory storage cleared", "info");
+            } else if (op === 'MR') {
+                sciExpression += String(sciMemoryValue);
+                document.getElementById('scientificInput').textContent = sciExpression;
+                triggerToast("Memory Action", "Memory value recalled", "info");
+            } else if (op === 'M+') {
+                sciMemoryValue += outputVal;
+                triggerToast("Memory Action", "Added to memory storage", "success");
+            } else if (op === 'M-') {
+                sciMemoryValue -= outputVal;
+                triggerToast("Memory Action", "Subtracted from memory storage", "info");
+            }
+            regDisplay.textContent = sciMemoryValue;
+        }
+
+        // -----------------------------------------------------------------
+        // 2. INTERACTIVE GRAPHING CALC ENGINE
+        // -----------------------------------------------------------------
+        let canvas, ctx;
+        let zoomScaleX = 40; // Pixels per math unit
+        let zoomScaleY = 40;
+        let graphCenterX = 0; // Math coordinates of canvas center
+        let graphCenterY = 0;
+        let isPanning = false;
+        let panStartX = 0, panStartY = 0;
+
+        function initGraphCanvas() {
+            canvas = document.getElementById('graphCanvas');
+            ctx = canvas.getContext('2d');
+
+            // Responsive sizing of parent container
+            resizeCanvas();
+            window.addEventListener('resize', () => {
+                if (currentMode === 'graphing') resizeCanvas();
+            });
+
+            // Set dragging events
+            canvas.addEventListener('mousedown', startPan);
+            canvas.addEventListener('mousemove', dragPan);
+            canvas.addEventListener('mouseup', endPan);
+            canvas.addEventListener('mouseleave', endPan);
+
+            // Wheel scaling zoom
+            canvas.addEventListener('wheel', handleCanvasScroll, { passive: false });
+
+            // Plot preset functions on boot
+            renderGraphPlots();
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            renderGraphPlots();
+        }
+
+        function adjustGraphView(action) {
+            clickSound();
+            if (action === 'zoomIn') {
+                zoomScaleX *= 1.3;
+                zoomScaleY *= 1.3;
+            } else if (action === 'zoomOut') {
+                zoomScaleX /= 1.3;
+                zoomScaleY /= 1.3;
+            } else if (action === 'center') {
+                graphCenterX = 0;
+                graphCenterY = 0;
+                zoomScaleX = 40;
+                zoomScaleY = 40;
+            }
+            renderGraphPlots();
+        }
+
+        function resetGraphInput(index) {
+            clickSound();
+            const input = document.getElementById(`eq-input-${index}`);
+            if (index === 1) input.value = "x^2 - 3";
+            if (index === 2) input.value = "2*sin(x)";
+            renderGraphPlots();
+        }
+
+        function startPan(e) {
+            isPanning = true;
+            canvas.style.cursor = 'grabbing';
+            panStartX = e.clientX;
+            panStartY = e.clientY;
+        }
+
+        function dragPan(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Convert canvas pixels to math coordinates
+            const mathX = (mouseX - canvas.width / 2) / zoomScaleX + graphCenterX;
+            const mathY = -(mouseY - canvas.height / 2) / zoomScaleY + graphCenterY;
+
+            document.getElementById('hud-coord-x').textContent = mathX.toFixed(2);
+            document.getElementById('hud-coord-y').textContent = mathY.toFixed(2);
+
+            if (!isPanning) return;
+            const deltaX = e.clientX - panStartX;
+            const deltaY = e.clientY - panStartY;
+
+            graphCenterX -= deltaX / zoomScaleX;
+            graphCenterY += deltaY / zoomScaleY;
+
+            panStartX = e.clientX;
+            panStartY = e.clientY;
+
+            renderGraphPlots();
+        }
+
+        function endPan() {
+            isPanning = false;
+            if (canvas) canvas.style.cursor = 'grab';
+        }
+
+        function handleCanvasScroll(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Point coordinate where user scrolled
+            const targetMathX = (mouseX - canvas.width / 2) / zoomScaleX + graphCenterX;
+            const targetMathY = -(mouseY - canvas.height / 2) / zoomScaleY + graphCenterY;
+
+            const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+            zoomScaleX *= zoomFactor;
+            zoomScaleY *= zoomFactor;
+
+            // Anchor center point to keep mouse pointer anchored to math coordinate
+            graphCenterX = targetMathX - (mouseX - canvas.width / 2) / zoomScaleX;
+            graphCenterY = targetMathY + (mouseY - canvas.height / 2) / zoomScaleY;
+
+            renderGraphPlots();
+        }
+
+        // Complex multi-axis plotter mapping custom parser loops
+        function renderGraphPlots() {
+            if (!ctx) return;
+            
+            // Clear grid background
+            ctx.fillStyle = '#020617'; // slate-950
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const midX = canvas.width / 2 - graphCenterX * zoomScaleX;
+            const midY = canvas.height / 2 + graphCenterY * zoomScaleY;
+
+            // Draw grid lines
+            ctx.strokeStyle = '#1e293b'; // slate-800
+            ctx.lineWidth = 0.5;
+
+            // Grid Spacing decisions
+            let gridSpacing = 1;
+            const approxPixels = gridSpacing * zoomScaleX;
+            if (approxPixels < 20) gridSpacing = 5;
+            if (approxPixels < 5) gridSpacing = 10;
+            if (approxPixels > 150) gridSpacing = 0.5;
+
+            // Vertical grids left of origin
+            for (let xCoord = 0; midX - xCoord > 0; xCoord += gridSpacing * zoomScaleX) {
+                ctx.beginPath();
+                ctx.moveTo(midX - xCoord, 0);
+                ctx.lineTo(midX - xCoord, canvas.height);
+                ctx.stroke();
+            }
+            // Vertical grids right of origin
+            for (let xCoord = 0; midX + xCoord < canvas.width; xCoord += gridSpacing * zoomScaleX) {
+                ctx.beginPath();
+                ctx.moveTo(midX + xCoord, 0);
+                ctx.lineTo(midX + xCoord, canvas.height);
+                ctx.stroke();
+            }
+            // Horizontal grids above origin
+            for (let yCoord = 0; midY - yCoord > 0; yCoord += gridSpacing * zoomScaleY) {
+                ctx.beginPath();
+                ctx.moveTo(0, midY - yCoord);
+                ctx.lineTo(canvas.width, midY - yCoord);
+                ctx.stroke();
+            }
+            // Horizontal grids below origin
+            for (let yCoord = 0; midY + yCoord < canvas.height; yCoord += gridSpacing * zoomScaleY) {
+                ctx.beginPath();
+                ctx.moveTo(0, midY + yCoord);
+                ctx.lineTo(canvas.width, midY + yCoord);
+                ctx.stroke();
+            }
+
+            // Draw primary X & Y axes
+            ctx.strokeStyle = '#475569'; // slate-600
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, midY);
+            ctx.lineTo(canvas.width, midY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(midX, 0);
+            ctx.lineTo(midX, canvas.height);
+            ctx.stroke();
+
+            // Render numbers on axes
+            ctx.fillStyle = '#94a3b8'; // slate-400
+            ctx.font = '9px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            // X coordinates labels
+            const stepUnits = gridSpacing;
+            const startValX = Math.ceil(-midX / zoomScaleX) * stepUnits;
+            const endValX = Math.ceil((canvas.width - midX) / zoomScaleX) * stepUnits;
+            for (let val = startValX; val <= endValX; val += stepUnits) {
+                if (val === 0) continue;
+                const xPos = midX + val * zoomScaleX;
+                ctx.fillText(val.toFixed(1).replace('.0', ''), xPos, midY + 5);
+            }
+
+            // Y coordinates labels
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            const startValY = Math.ceil(-midY / zoomScaleY) * stepUnits;
+            const endValY = Math.ceil((canvas.height - midY) / zoomScaleY) * stepUnits;
+            for (let val = startValY; val <= endValY; val += stepUnits) {
+                if (val === 0) continue;
+                const yPos = midY - val * zoomScaleY;
+                ctx.fillText(val.toFixed(1).replace('.0', ''), midX - 5, yPos);
+            }
+
+            // Render math equations on the list
+            plotFunctionCurve(1, '#3b82f6'); // Blue Curve
+            plotFunctionCurve(2, '#10b981'); // Emerald Curve
+        }
+
+        function plotFunctionCurve(inputIndex, strokeColor) {
+            const rawExp = document.getElementById(`eq-input-${inputIndex}`).value;
+            if (!rawExp.trim()) return;
+
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+
+            let firstPoint = true;
+
+            // Iterate across each horizontal pixel to compute mathematical Y
+            for (let px = 0; px < canvas.width; px++) {
+                // Convert pixel position to target math coordinate variable
+                const mx = (px - (canvas.width / 2 - graphCenterX * zoomScaleX)) / zoomScaleX;
+
+                try {
+                    // Evaluate math expression safely
+                    const my = math.evaluate(rawExp, { x: mx });
+                    
+                    if (typeof my === 'number' && !isNaN(my) && isFinite(my)) {
+                        // Math Y mapped to Canvas vertical pixels (Y coordinate flips vertically in graphics)
+                        const py = canvas.height / 2 + graphCenterY * zoomScaleY - my * zoomScaleY;
+
+                        if (py >= 0 && py <= canvas.height) {
+                            if (firstPoint) {
+                                ctx.moveTo(px, py);
+                                firstPoint = false;
+                            } else {
+                                ctx.lineTo(px, py);
+                            }
+                        } else {
+                            firstPoint = true; // Break draw continuity if point escapes boundary
+                        }
+                    } else {
+                        firstPoint = true;
+                    }
+                } catch (err) {
+                    firstPoint = true; // Error on parse, skip plotting coordinate
+                }
+            }
+            ctx.stroke();
+        }
+
+        // -----------------------------------------------------------------
+        // 3. PROGRAMMER MODE SUITE ENGINE
+        // -----------------------------------------------------------------
+        let progActiveBase = 'DEC';
+        let currentRawDecValue = 0;
+
+        function setProgrammerActiveBase(base) {
+            clickSound();
+            progActiveBase = base;
+            document.getElementById('progActiveLabel').textContent = `ACTIVE BASE: ${base}`;
+            
+            // Adjust glowing active row selectors
+            document.querySelectorAll('[id^="prog-"]').forEach(row => row.className = "flex items-center justify-between border-b border-slate-900 py-1.5 cursor-pointer hover:bg-slate-900/40 rounded px-1 transition-colors");
+            const activeRow = document.getElementById(`prog-${base.toLowerCase()}-row`);
+            activeRow.className += " glow-active border border-amber-600/30";
+
+            // Configure keyboard status according to Base constraints (enable hex / disable numbers)
+            configureProgrammerKeys();
+            syncProgrammerDisplays();
+        }
+
+        function configureProgrammerKeys() {
+            // Hex buttons
+            const isHex = progActiveBase === 'HEX';
+            const isBin = progActiveBase === 'BIN';
+            const isOct = progActiveBase === 'OCT';
+
+            ['A', 'B', 'C', 'D', 'E', 'F'].forEach(key => {
+                const btn = document.getElementById(`btn-hex-${key}`);
+                if (isHex) {
+                    btn.className = "p-3 bg-slate-800 hover:bg-slate-700 text-amber-400 font-semibold rounded-lg text-lg";
+                    btn.disabled = false;
+                } else {
+                    btn.className = "p-3 bg-slate-800/20 text-slate-700 font-semibold rounded-lg text-lg cursor-not-allowed";
+                    btn.disabled = true;
+                }
+            });
+
+            // Digit buttons disabling rules
+            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].forEach(num => {
+                const btn = document.getElementById(`btn-num-${num}`);
+                let block = false;
+                if (isBin && num !== '0' && num !== '1') block = true;
+                if (isOct && (num === '8' || num === '9')) block = true;
+
+                if (block) {
+                    btn.className = "p-3 bg-slate-800/20 text-slate-700 font-semibold rounded-lg text-lg cursor-not-allowed";
+                    btn.disabled = true;
+                } else {
+                    btn.className = "p-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg text-lg text-slate-100";
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        function pressProgKey(key) {
+            clickSound();
+            if (key === 'C_AC') {
+                currentRawDecValue = 0;
+            } else if (key === 'backspace') {
+                const baseRadix = progActiveBase === 'HEX' ? 16 : progActiveBase === 'OCT' ? 8 : progActiveBase === 'BIN' ? 2 : 10;
+                let activeStr = currentRawDecValue.toString(baseRadix);
+                activeStr = activeStr.slice(0, -1);
+                currentRawDecValue = parseInt(activeStr, baseRadix) || 0;
+            } else {
+                // Parse and append digit
+                const baseRadix = progActiveBase === 'HEX' ? 16 : progActiveBase === 'OCT' ? 8 : progActiveBase === 'BIN' ? 2 : 10;
+                let activeStr = currentRawDecValue.toString(baseRadix);
+                if (activeStr === "0") activeStr = "";
+                activeStr += key;
+                currentRawDecValue = parseInt(activeStr, baseRadix) || 0;
+            }
+
+            // Guard rails to prevent buffer overflow limits in standard 16-bit visualization space
+            if (currentRawDecValue > 65535) currentRawDecValue = 65535;
+            if (currentRawDecValue < -32768) currentRawDecValue = -32768;
+
+            syncProgrammerDisplays();
+        }
+
+        function pressProgOp(op) {
+            opSound();
+            const inputVal = currentRawDecValue;
+            if (op === 'AND') {
+                currentRawDecValue = currentRawDecValue & 0xFF; // Simple mask
+            } else if (op === 'OR') {
+                currentRawDecValue = currentRawDecValue | 0xF0;
+            } else if (op === 'XOR') {
+                currentRawDecValue = currentRawDecValue ^ 0xAA;
+            } else if (op === 'NOT') {
+                currentRawDecValue = (~currentRawDecValue) & 0xFFFF; // Limit to 16 bit spaces
+            } else if (op === 'LSH') {
+                currentRawDecValue = (currentRawDecValue << 1) & 0xFFFF;
+            } else if (op === 'RSH') {
+                currentRawDecValue = (currentRawDecValue >> 1) & 0xFFFF;
+            }
+            syncProgrammerDisplays();
+        }
+
+        function toggleBit(bitIndex) {
+            clickSound();
+            // Flip the target bit using standard Bit Masking XOR
+            const mask = 1 << bitIndex;
+            currentRawDecValue = currentRawDecValue ^ mask;
+            syncProgrammerDisplays();
+        }
+
+        function syncProgrammerDisplays() {
+            // Convert Dec values to target radices
+            document.getElementById('progHexVal').textContent = currentRawDecValue.toString(16).toUpperCase();
+            document.getElementById('progDecVal').textContent = currentRawDecValue.toString(10);
+            document.getElementById('progOctVal').textContent = currentRawDecValue.toString(8);
+            
+            // Layout Binary spaces into structured readable bytes: e.g. "0000 0000"
+            const rawBin = currentRawDecValue.toString(2).padStart(16, '0');
+            const splitBin = rawBin.slice(0, 4) + ' ' + rawBin.slice(4, 8) + ' ' + rawBin.slice(8, 12) + ' ' + rawBin.slice(12, 16);
+            document.getElementById('progBinVal').textContent = splitBin;
+
+            // Reflect visually onto the interactive 16-bit blocks mapping state triggers
+            for (let i = 0; i < 16; i++) {
+                const bitState = (currentRawDecValue >> i) & 1;
+                const bitBox = document.getElementById(`bit-${i}`);
+                bitBox.textContent = bitState;
+                if (bitState === 1) {
+                    bitBox.className = "py-1.5 bg-amber-600 hover:bg-amber-500 rounded text-xs cursor-pointer select-none border border-amber-500 text-white font-bold transition-all";
+                } else {
+                    bitBox.className = "py-1.5 bg-slate-850 hover:bg-slate-800 rounded text-xs cursor-pointer select-none border border-slate-700 text-slate-500 transition-all";
+                }
+            }
+        }
+
+        function pressProgEval() {
+            successSound();
+            triggerToast("Completed Operation", `Base representation: ${currentRawDecValue}`, "success");
+        }
+
+        // -----------------------------------------------------------------
+        // 4. MATRIX STUDIO ENGINE
+        // -----------------------------------------------------------------
+        let activeMatrixSize = 3;
+
+        function initializeMatrixWorkspace() {
+            const size = parseInt(document.getElementById('matrixSizeSelect').value);
+            activeMatrixSize = size;
+
+            const gridA = document.getElementById('matrixGridA');
+            const gridB = document.getElementById('matrixGridB');
+
+            // Style layout rules dynamic
+            gridA.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`;
+            gridB.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`;
+
+            gridA.innerHTML = "";
+            gridB.innerHTML = "";
+
+            // Dynamic setup of inputs with initial identities
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    const cellValA = r === c ? 1 : 0;
+                    const cellValB = r === c ? 2 : 1;
+
+                    gridA.innerHTML += `<input type="number" step="any" id="mat-A-${r}-${c}" value="${cellValA}" class="w-full bg-slate-900 border border-slate-800 text-center py-1.5 text-xs font-mono text-slate-200 rounded outline-none focus:border-purple-500">`;
+                    gridB.innerHTML += `<input type="number" step="any" id="mat-B-${r}-${c}" value="${cellValB}" class="w-full bg-slate-900 border border-slate-800 text-center py-1.5 text-xs font-mono text-slate-200 rounded outline-none focus:border-purple-500">`;
+                }
+            }
+        }
+
+        function clearMatrix(letter) {
+            clickSound();
+            const size = activeMatrixSize;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    document.getElementById(`mat-${letter}-${r}-${c}`).value = 0;
+                }
+            }
+        }
+
+        function swapMatrices() {
+            clickSound();
+            const size = activeMatrixSize;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    const elA = document.getElementById(`mat-A-${r}-${c}`);
+                    const elB = document.getElementById(`mat-B-${r}-${c}`);
+                    const temp = elA.value;
+                    elA.value = elB.value;
+                    elB.value = temp;
+                }
+            }
+            triggerToast("Matrices Swapped", "Matrix A and B positions swapped.", "info");
+        }
+
+        function getMatrixArray(letter) {
+            const size = activeMatrixSize;
+            const mat = [];
+            for (let r = 0; r < size; r++) {
+                const row = [];
+                for (let c = 0; c < size; c++) {
+                    const val = parseFloat(document.getElementById(`mat-${letter}-${r}-${c}`).value);
+                    if (isNaN(val)) throw new Error(`Invalid inputs found inside Matrix ${letter}`);
+                    row.push(val);
+                }
+                mat.push(row);
+            }
+            return mat;
+        }
+
+        function computeMatrixOp(op) {
+            clickSound();
+            const size = activeMatrixSize;
+            const badge = document.getElementById('matrixOpBadge');
+            const placeholder = document.getElementById('matrixOutputPlaceholder');
+            const resultLayout = document.getElementById('matrixResultLayout');
+            const scalarText = document.getElementById('matrixScalarResult');
+            const outputGrid = document.getElementById('matrixOutputGrid');
+
+            try {
+                const matA = getMatrixArray('A');
+                let resultMat = null;
+                let scalarResultVal = null;
+
+                if (op === 'add' || op === 'sub' || op === 'mult') {
+                    const matB = getMatrixArray('B');
+                    if (op === 'add') {
+                        resultMat = math.add(matA, matB);
+                        badge.textContent = "A + B";
+                    } else if (op === 'sub') {
+                        resultMat = math.subtract(matA, matB);
+                        badge.textContent = "A - B";
+                    } else if (op === 'mult') {
+                        resultMat = math.multiply(matA, matB);
+                        badge.textContent = "A × B";
+                    }
+                } else if (op === 'detA') {
+                    scalarResultVal = math.det(matA);
+                    badge.textContent = "Det(A)";
+                } else if (op === 'invA') {
+                    resultMat = math.inv(matA);
+                    badge.textContent = "Inv(A)";
+                } else if (op === 'transA') {
+                    resultMat = math.transpose(matA);
+                    badge.textContent = "Trans(A)";
+                }
+
+                // Swap displays
+                placeholder.classList.add('hidden');
+                resultLayout.classList.remove('hidden');
+
+                if (scalarResultVal !== null) {
+                    scalarText.innerHTML = `Determinant: <span class="text-white">${scalarResultVal.toFixed(4)}</span>`;
+                    outputGrid.parentElement.classList.add('hidden');
+                } else {
+                    scalarText.innerHTML = "";
+                    outputGrid.parentElement.classList.remove('hidden');
+                    outputGrid.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`;
+                    outputGrid.innerHTML = "";
+
+                    // Print formatted items into output cells
+                    for (let r = 0; r < size; r++) {
+                        for (let c = 0; c < size; c++) {
+                            const val = resultMat[r][c];
+                            const printable = typeof val === 'number' ? val.toFixed(2).replace('.00', '') : val;
+                            outputGrid.innerHTML += `<div class="bg-slate-900 border border-slate-800 text-slate-200 py-1.5 px-1 rounded text-xs select-all">${printable}</div>`;
+                        }
+                    }
+                }
+                successSound();
+            } catch (err) {
+                triggerToast("Computation Error", err.message || "Operation could not complete.", "error");
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // 5. FINANCIAL MODELER ENGINE
+        // -----------------------------------------------------------------
+        function adjustFinanceInputs() {
+            clickSound();
+            const finType = document.getElementById('finType').value;
+            const lblA = document.getElementById('labelFinA');
+            const lblB = document.getElementById('labelFinB');
+            const lblC = document.getElementById('labelFinC');
+
+            const valA = document.getElementById('finInputA');
+            const valB = document.getElementById('finInputB');
+            const valC = document.getElementById('finInputC');
+
+            if (finType === 'loan') {
+                lblA.textContent = "Principal / Loan Amount ($)";
+                lblB.textContent = "Annual Interest Rate (%)";
+                lblC.textContent = "Term Horizon (Years)";
+                valA.value = 250000;
+                valB.value = 5.5;
+                valC.value = 30;
+                document.getElementById('finResultLabel').textContent = "Mortgage Amortization";
+            } else {
+                lblA.textContent = "Monthly Recurring Deposits ($)";
+                lblB.textContent = "Estimated Yearly Return (%)";
+                lblC.textContent = "Savings Duration (Years)";
+                valA.value = 500;
+                valB.value = 7.0;
+                valC.value = 20;
+                document.getElementById('finResultLabel').textContent = "Future Value Earnings";
+            }
+            calculateFinancials();
+        }
+
+        function calculateFinancials() {
+            clickSound();
+            const finType = document.getElementById('finType').value;
+            const pA = parseFloat(document.getElementById('finInputA').value);
+            const pB = parseFloat(document.getElementById('finInputB').value);
+            const pC = parseFloat(document.getElementById('finInputC').value);
+
+            if (isNaN(pA) || isNaN(pB) || isNaN(pC) || pA <= 0 || pB < 0 || pC <= 0) {
+                triggerToast("Validation Exception", "All parameters must hold non-negative numeric constants.", "error");
+                return;
+            }
+
+            const kpiMonthly = document.getElementById('finKpiMonthly');
+            const kpiPrincipal = document.getElementById('finKpiPrincipal');
+            const kpiInterest = document.getElementById('finKpiInterest');
+            const kpiAggregate = document.getElementById('finKpiAggregate');
+
+            const barPrincipal = document.getElementById('finBarPrincipal');
+            const barInterest = document.getElementById('finBarInterest');
+
+            const pctPrincipal = document.getElementById('finPctPrincipal');
+            const pctInterest = document.getElementById('finPctInterest');
+
+            if (finType === 'loan') {
+                // Monthly compounding
+                const monthlyRate = (pB / 100) / 12;
+                const totalPaymentsCount = pC * 12;
+
+                let monthlyRepay = 0;
+                if (monthlyRate === 0) {
+                    monthlyRepay = pA / totalPaymentsCount;
+                } else {
+                    monthlyRepay = (pA * monthlyRate * Math.pow(1 + monthlyRate, totalPaymentsCount)) / (Math.pow(1 + monthlyRate, totalPaymentsCount) - 1);
+                }
+
+                const totalPaymentsSum = monthlyRepay * totalPaymentsCount;
+                const totalInterestPay = totalPaymentsSum - pA;
+
+                kpiMonthly.textContent = `$${monthlyRepay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                kpiPrincipal.textContent = `$${pA.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                kpiInterest.textContent = `$${totalInterestPay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                kpiAggregate.textContent = `$${totalPaymentsSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                // Chart calibration
+                const pctP = (pA / totalPaymentsSum) * 100;
+                const pctI = 100 - pctP;
+
+                barPrincipal.style.width = `${pctP}%`;
+                barInterest.style.width = `${pctI}%`;
+
+                pctPrincipal.textContent = `${pctP.toFixed(1)}%`;
+                pctInterest.textContent = `${pctI.toFixed(1)}%`;
+            } else {
+                // Compound deposit future value formula
+                const monthlyRate = (pB / 100) / 12;
+                const totalPeriods = pC * 12;
+
+                let futureValueTotal = 0;
+                let principalAccum = pA * totalPeriods;
+
+                if (monthlyRate === 0) {
+                    futureValueTotal = principalAccum;
+                } else {
+                    futureValueTotal = pA * ((Math.pow(1 + monthlyRate, totalPeriods) - 1) / monthlyRate) * (1 + monthlyRate);
+                }
+
+                const totalGrowthInterest = futureValueTotal - principalAccum;
+
+                kpiMonthly.textContent = `N/A (Deposits Done)`;
+                kpiPrincipal.textContent = `$${principalAccum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                kpiInterest.textContent = `$${totalGrowthInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                kpiAggregate.textContent = `$${futureValueTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                // Chart calibration
+                const pctP = (principalAccum / futureValueTotal) * 100;
+                const pctI = 100 - pctP;
+
+                barPrincipal.style.width = `${pctP}%`;
+                barInterest.style.width = `${pctI}%`;
+
+                pctPrincipal.textContent = `${pctP.toFixed(1)}%`;
+                pctInterest.textContent = `${pctI.toFixed(1)}%`;
+            }
+            successSound();
+        }
+
+        // -----------------------------------------------------------------
+        // 6. UNIVERSAL UNIT CONVERTER ENGINE
+        // -----------------------------------------------------------------
+        const convUnitsMap = {
+            length: {
+                meter: { label: 'Meter (m)', factor: 1 },
+                kilometer: { label: 'Kilometer (km)', factor: 1000 },
+                mile: { label: 'Mile (mi)', factor: 1609.344 },
+                inch: { label: 'Inch (in)', factor: 0.0254 },
+                foot: { label: 'Foot (ft)', factor: 0.3048 }
+            },
+            mass: {
+                kilogram: { label: 'Kilogram (kg)', factor: 1 },
+                gram: { label: 'Gram (g)', factor: 0.001 },
+                pound: { label: 'Pound (lb)', factor: 0.45359237 },
+                ounce: { label: 'Ounce (oz)', factor: 0.028349523 }
+            },
+            area: {
+                squareMeter: { label: 'Sq Meter (m²)', factor: 1 },
+                hectare: { label: 'Hectare (ha)', factor: 10000 },
+                acre: { label: 'Acre (ac)', factor: 4046.8564 }
+            },
+            volume: {
+                liter: { label: 'Liter (L)', factor: 1 },
+                milliliter: { label: 'Milliliter (mL)', factor: 0.001 },
+                gallon: { label: 'Gallon (gal)', factor: 3.78541 },
+                cup: { label: 'Cup (c)', factor: 0.236588 }
+            },
+            speed: {
+                mps: { label: 'Meter / Sec (m/s)', factor: 1 },
+                kph: { label: 'Kilo / Hour (km/h)', factor: 0.277778 },
+                mph: { label: 'Miles / Hour (mph)', factor: 0.44704 }
+            },
+            temp: {
+                celsius: { label: 'Celsius (°C)' },
+                fahrenheit: { label: 'Fahrenheit (°F)' },
+                kelvin: { label: 'Kelvin (K)' }
+            }
+        };
+
+        function initializeConverterUnits() {
+            const type = document.getElementById('convType').value;
+            const fromSelect = document.getElementById('convUnitFrom');
+            const toSelect = document.getElementById('convUnitTo');
+
+            fromSelect.innerHTML = "";
+            toSelect.innerHTML = "";
+
+            const units = convUnitsMap[type];
+            let i = 0;
+            for (const key in units) {
+                fromSelect.innerHTML += `<option value="${key}">${units[key].label}</option>`;
+                toSelect.innerHTML += `<option value="${key}" ${i === 1 ? 'selected' : ''}>${units[key].label}</option>`;
+                i++;
+            }
+            
+            buildConversionReferenceTable(type);
+            performConversion();
+        }
+
+        function swapConversionUnits() {
+            clickSound();
+            const fromSelect = document.getElementById('convUnitFrom');
+            const toSelect = document.getElementById('convUnitTo');
+
+            const temp = fromSelect.value;
+            fromSelect.value = toSelect.value;
+            toSelect.value = temp;
+
+            performConversion();
+        }
+
+        function performConversion() {
+            const type = document.getElementById('convType').value;
+            const fromUnit = document.getElementById('convUnitFrom').value;
+            const toUnit = document.getElementById('convUnitTo').value;
+            const inputVal = parseFloat(document.getElementById('convInputFrom').value);
+
+            if (isNaN(inputVal)) {
+                document.getElementById('convInputTo').value = "";
+                return;
+            }
+
+            let result = 0;
+
+            if (type === 'temp') {
+                // Special temperature formulas
+                if (fromUnit === toUnit) result = inputVal;
+                else if (fromUnit === 'celsius' && toUnit === 'fahrenheit') result = (inputVal * 9/5) + 32;
+                else if (fromUnit === 'celsius' && toUnit === 'kelvin') result = inputVal + 273.15;
+                else if (fromUnit === 'fahrenheit' && toUnit === 'celsius') result = (inputVal - 32) * 5/9;
+                else if (fromUnit === 'fahrenheit' && toUnit === 'kelvin') result = (inputVal - 32) * 5/9 + 273.15;
+                else if (fromUnit === 'kelvin' && toUnit === 'celsius') result = inputVal - 273.15;
+                else if (fromUnit === 'kelvin' && toUnit === 'fahrenheit') result = (inputVal - 273.15) * 9/5 + 32;
+            } else {
+                // Standard SI scale mapping
+                const units = convUnitsMap[type];
+                const baseValue = inputVal * units[fromUnit].factor;
+                result = baseValue / units[toUnit].factor;
+            }
+
+            document.getElementById('convInputTo').value = result.toFixed(5).replace(/\.?0+$/, '');
+        }
+
+        function buildConversionReferenceTable(type) {
+            const container = document.getElementById('conversionReferenceMap');
+            container.innerHTML = "";
+            const units = convUnitsMap[type];
+
+            if (type === 'temp') {
+                container.innerHTML = `
+                    <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-900 font-mono text-slate-400">
+                        <span>0 °C</span>
+                        <span class="text-white">32.00 °F / 273.15 K</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-900 font-mono text-slate-400">
+                        <span>100 °C (Boil)</span>
+                        <span class="text-white">212.00 °F / 373.15 K</span>
+                    </div>
+                `;
+                return;
+            }
+
+            // Dynamically evaluate factor equivalents vs base unit
+            let firstUnitKey = Object.keys(units)[0];
+            let baseUnitName = units[firstUnitKey].label;
+
+            for (const key in units) {
+                if (key === firstUnitKey) continue;
+                const ratio = units[key].factor / units[firstUnitKey].factor;
+                container.innerHTML += `
+                    <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-900 font-mono text-slate-400">
+                        <span>1 ${key}</span>
+                        <span class="text-white">${ratio.toFixed(4).replace(/\.?0+$/, '')} ${firstUnitKey}</span>
+                    </div>
+                `;
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // GLOBAL INITIALIZATION & KEYBOARD CONTROLS
+        // -----------------------------------------------------------------
+        window.onload = function() {
+            // Initiate app workspace view
+            switchMode('scientific');
+
+            // Listen to keyboard press keys
+            document.addEventListener('keydown', function(event) {
+                if (currentMode === 'scientific') {
+                    const key = event.key;
+                    if (/[0-9]/.test(key) || ['+', '-', '*', '/', '.', '(', ')'].includes(key)) {
+                        pressSci(key);
+                    } else if (key === 'Enter') {
+                        pressSci('eval');
+                    } else if (key === 'Backspace') {
+                        pressSci('backspace');
+                    } else if (key === 'Escape') {
+                        pressSci('C');
+                    }
+                }
+            });
+        };
+    </script>
+</body>
+</html>
